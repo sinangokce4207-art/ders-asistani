@@ -5,7 +5,7 @@ import google.generativeai as genai
 # ---------------------------------------------------------
 # 1. API ANAHTARINI BURAYA YAPIŞTIR
 # ---------------------------------------------------------
-API_KEY = AQ.Ab8RN6KjQBEyVzmmmmlplXvTGm278613m-XwVR6WORHQP-8fjw
+API_KEY = "AQ.Ab8RN6KjQBEyVzmmmmlplXvTGm278613m-XwVR6WORHQP-8fjw"
 genai.configure(api_key=API_KEY)
 
 # ---------------------------------------------------------

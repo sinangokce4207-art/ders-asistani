@@ -1,24 +1,18 @@
-import os
 import streamlit as st
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 # ---------------------------------------------------------
-# 1. API ANAHTARINI BURAYA YAPIŞTIR
+# 1. API ANAHTARINI BURAYA YAPIŞTIR (AQ. ile başlayanı kabul eder)
 # ---------------------------------------------------------
-API_KEY = "AQ.Ab8RN6KjQBEyVzmmmmlplXvTGm278613m-XwVR6WORHQP-8fjw"
-genai.configure(api_key=API_KEY)
+API_KEY = "AQ.Ab8RN6LEXd6EJmLUfRn5tYC1HPGADb_rquvkVwW3x02Wbi1bWA"
+
+client = genai.Client(api_key=API_KEY)
 
 # ---------------------------------------------------------
 # 2. SAYFA VE ARAYÜZ AYARLARI
 # ---------------------------------------------------------
 st.set_page_config(page_title="Akıllı Ders Asistanı", layout="centered", page_icon="🎓")
-
-st.markdown("""
-    <style>
-    .main { background-color: #f8fafc; }
-    .stButton>button { width: 100%; border-radius: 8px; height: 3em; font-weight: bold; }
-    </style>
-""", unsafe_allow_html=True)
 
 st.title("🎓 Akıllı Ders Notu Asistanı")
 st.caption("Ders slaytını yükle, sesi kaydet; A4 formatında temiz ders notunu anında al.")
@@ -44,51 +38,55 @@ if st.button("🚀 Dersi Analiz Et ve A4 Notu Çıkar", type="primary"):
         with st.spinner("Ses ve kaynak taranıyor, A4 ders notu hazırlanıyor..."):
             try:
                 system_instruction = """
-                Sen dünyanın en başarılı, düzenli üniversite öğrencisisin. 
-                Sana verilen ses kaydı ve referans slaytı/PDF'i harmanlayarak doğrudan çalışmaya hazır, temiz bir A4 ders notu hazırla.
+                Sen üniversite derslerini kusursuz özetleyen zeki bir öğrencisin.
+                Sana verilen ses kaydı ve referans slaytı sentezleyerek doğrudan çalışmaya hazır, temiz bir A4 ders notu hazırla.
 
                 KURALLAR:
-                1. GEREKSİZLERİ AT: Hocanın laf kalabalığını, esprilerini, sınıf uyarılarını ve dolgu kelimelerini filtrele.
+                1. GEREKSİZLERİ AT: Hocanın laf kalabalığını, esprilerini ve sınıf uyarılarını filtrele.
                 2. SLAYT + SES SENTEZİ: Slayttaki iskelet yapıyı hocanın sözlü detaylarıyla birleştir.
-                3. SÖZLÜ DETAYLAR: Slaytta olmayan ama hocanın sözlü aktardığı kritik noktaları `> 💡 HOCANIN SÖZLÜ EKLEMESİ:` olarak yaz.
+                3. SÖZLÜ DETAYLAR: Slaytta olmayan ama hocanın anlattığı noktaları `> 💡 HOCANIN SÖZLÜ EKLEMESİ:` olarak yaz.
                 4. SINAV VURGULARI: 'Burası sınavda çıkar', 'önemli' denen yerleri `> ⚠️ SINAV / KRİTİK NOKTA:` olarak belirt.
                 5. HİYERARŞİ: Markdown başlıkları (#, ##, ###), maddeler ve karşılaştırmalı tablolar kullan. En sona 3 maddelik '🎯 Hızlı Sınav Tekrarı' ekle.
                 """
-
-                model = genai.GenerativeModel(
-                    model_name="gemini-1.5-flash",
-                    system_instruction=system_instruction
-                )
 
                 contents = []
 
                 # PDF Varsa ekle
                 if pdf_file:
-                    pdf_bytes = pdf_file.read()
-                    contents.append({
-                        "mime_type": "application/pdf",
-                        "data": pdf_bytes
-                    })
+                    contents.append(
+                        types.Part.from_bytes(
+                            data=pdf_file.read(),
+                            mime_type="application/pdf",
+                        )
+                    )
 
                 # Ses dosyasını ekle
-                audio_bytes = audio_file.read()
-                contents.append({
-                    "mime_type": "audio/wav",
-                    "data": audio_bytes
-                })
+                contents.append(
+                    types.Part.from_bytes(
+                        data=audio_file.read(),
+                        mime_type="audio/wav",
+                    )
+                )
 
                 contents.append("Ders kaydını ve slaytı analiz edip kurallara uygun eksiksiz ders notunu çıkar.")
 
-                # Üretim
-                response = model.generate_content(contents)
+                # Yeni SDK Çağrısı
+                response = client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=contents,
+                    config=types.GenerateContentConfig(
+                        system_instruction=system_instruction,
+                        temperature=0.2,
+                    ),
+                )
 
                 st.success("Ders notu hazırlandı!")
                 st.markdown("---")
                 st.markdown(response.text)
 
-                # Notu İndirme Butonu
+                # İndirme Butonu
                 st.download_button(
-                    label="📥 Notu İndir (.md / Yazı)",
+                    label="📥 Notu İndir (.md)",
                     data=response.text,
                     file_name="ders_notu.md",
                     mime="text/markdown"
